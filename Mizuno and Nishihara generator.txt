@@ -1,0 +1,139 @@
+import React, { useState, useEffect } from 'react';
+
+// Main App component for the graph generator interface
+const App = () => {
+    // State to store the user input for the maximum number of vertices (x)
+    const [maxVertices, setMaxVertices] = useState(50);
+    // State to manage loading status during graph generation
+    const [isLoading, setIsLoading] = useState(false);
+    // State to store the download link for the generated graph
+    const [downloadLink, setDownloadLink] = useState('');
+    // State to store any error messages
+    const [error, setError] = useState('');
+    // State to store the backend API URL (placeholder for now)
+    const [backendUrl, setBackendUrl] = useState('YOUR_PYTHON_BACKEND_API_URL_HERE');
+
+    // Effect to run once when the component mounts to explain the process
+    useEffect(() => {
+        console.log("Welcome to the Graph Generator! Enter a number of vertices and click 'Generate Graph'.");
+        console.log("Note: This frontend requires a separate Python backend API to function.");
+    }, []);
+
+    // Function to handle the graph generation process
+    const handleGenerateGraph = async () => {
+        // Clear previous results and errors
+        setDownloadLink('');
+        setError('');
+        setIsLoading(true);
+
+        if (!backendUrl || backendUrl === 'YOUR_PYTHON_BACKEND_API_URL_HERE') {
+            setError('Please set your Python backend API URL in the code.');
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            // Make a POST request to the backend API
+            const response = await fetch(`${backendUrl}/generate-graph`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ max_vertices: maxVertices }), // Send max_vertices to backend
+            });
+
+            // Check if the response was successful
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to generate graph');
+            }
+
+            // Parse the JSON response from the backend
+            const data = await response.json();
+            // Set the download link received from the backend
+            setDownloadLink(data.download_url);
+        } catch (err) {
+            // Catch and display any errors during the fetch operation
+            console.error('Error generating graph:', err);
+            setError(`Error: ${err.message}. Please ensure the backend is running and accessible.`);
+        } finally {
+            // Always stop loading, regardless of success or failure
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
+            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+                <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+                    Mizuno & Nishihara Graph Generator
+                </h1>
+
+                <p className="text-gray-600 text-center mb-6">
+                    Generate a 3-colorability instance. The generation terminates when the number of vertices surpasses your specified value.
+                </p>
+
+                <div className="mb-6">
+                    <label htmlFor="maxVertices" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Maximum Number of Vertices (x):
+                    </label>
+                    <input
+                        type="number"
+                        id="maxVertices"
+                        className="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                        value={maxVertices}
+                        onChange={(e) => setMaxVertices(parseInt(e.target.value) || 0)} // Ensure integer value
+                        min="1"
+                        placeholder="e.g., 509"
+                    />
+                </div>
+
+                <button
+                    onClick={handleGenerateGraph}
+                    disabled={isLoading} // Disable button while loading
+                    className={`w-full py-3 px-4 rounded-lg font-bold text-white transition duration-300 ease-in-out
+                                ${isLoading
+                                    ? 'bg-blue-300 cursor-not-allowed'
+                                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 shadow-md hover:shadow-lg'
+                                }`}
+                >
+                    {isLoading ? 'Generating Graph...' : 'Generate Graph'}
+                </button>
+
+                {/* Display area for download link or error */}
+                {downloadLink && (
+                    <div className="mt-6 p-4 bg-green-100 border border-green-300 text-green-800 rounded-lg text-center">
+                        <p className="mb-2">Graph generated successfully!</p>
+                        <a
+                            href={downloadLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline font-semibold break-all"
+                        >
+                            Download Generated Graph
+                        </a>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="mt-6 p-4 bg-red-100 border border-red-300 text-red-800 rounded-lg text-center">
+                        <p>{error}</p>
+                    </div>
+                )}
+
+                <div className="mt-8 text-sm text-gray-500 text-center">
+                    <p>
+                        This interactive feature demonstrates the Mizuno & Nishihara heuristic.
+                        For a fully functional version, you need to deploy a Python backend API.
+                    </p>
+                    <p className="mt-2">
+                        For more details on the underlying research, refer to my Nature paper on experimental zero-knowledge protocols.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default App;
+
